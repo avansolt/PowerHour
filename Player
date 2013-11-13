@@ -1,0 +1,183 @@
+package com.example.songoption;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.ContentUris;
+import android.database.Cursor;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnCompletionListener;
+import android.media.MediaPlayer.OnPreparedListener;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.provider.MediaStore;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+
+@SuppressLint("CutPasteId")
+public class Player extends Activity {
+
+	long[] audioId;
+	String [] title;
+    String [] artist;
+    long[] duration;
+    int counter;
+    double percent;
+    
+    private int currentTrack = 0; 
+    static MediaPlayer mediaPlayer;
+  
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+	    super.onCreate(savedInstanceState);
+		setContentView(R.layout.songs);
+		
+		Button pause = (Button) findViewById(R.id.button3);
+		
+		//Get the bundle
+	    Bundle bundle = getIntent().getExtras();
+	    //Extract the data…
+	    String idList = bundle.getString("idList"); 
+	    int seekto= bundle.getInt("start");
+	    
+	    String[] proj1 = {MediaStore.Audio.Playlists.Members.TITLE, MediaStore.Audio.Playlists.Members.ARTIST, 
+	            MediaStore.Audio.Playlists.Members.DURATION, "SourceId",MediaStore.Audio.Playlists.Members._ID};
+
+        Uri songUri = Uri.parse("content://com.google.android.music.MusicContent/playlists/" + idList + "/members");
+        Cursor songCursor = getContentResolver().query(songUri, proj1, null, null, null);
+        int i =0;
+        
+        //Save all song information 
+        if (songCursor.getCount() > 0) {
+            songCursor.moveToFirst();
+            
+            audioId = new long [songCursor.getCount()];
+            title = new String [songCursor.getCount()];
+            artist = new String [songCursor.getCount()];
+            duration = new long[songCursor.getCount()];
+             
+            do {
+               audioId[i]=  songCursor.getLong(songCursor.getColumnIndex("SourceId"));
+               String j =  String.valueOf(audioId[i]);
+               Log.e("audioId",j);
+               title[i]= songCursor.getString(0);
+               
+               artist[i]= songCursor.getString(1);
+               duration[i] = songCursor.getLong(2);
+               i++;
+            } while (songCursor.moveToNext());
+            
+            songCursor.close();
+            
+            mediaPlayer = new MediaPlayer();
+            
+         pause.setOnClickListener(new View.OnClickListener() {
+      	      @Override
+      	      public void onClick(View v) {
+                        mediaPlayer.pause();	  
+          }}); 
+         }
+        
+        String s =  String.valueOf(seekto);
+        Log.e("seekBar",s);
+     
+        percent=  seekto * .01;
+        
+        s =  String.valueOf(percent);
+        Log.e("seekBar",s);
+        
+          
+        firstSong();
+	   
+	}
+	public void firstSong()
+	{
+				try {
+		            if (audioId[currentTrack] > 0) {
+		                Uri contentUri = ContentUris.withAppendedId(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, Long.valueOf(audioId[currentTrack]));
+		                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+		                mediaPlayer.setDataSource(this, contentUri);
+		                mediaPlayer.prepareAsync();
+		                mediaPlayer.setOnPreparedListener(new OnPreparedListener() {
+		                	@Override
+		                	public void onPrepared(MediaPlayer m) {
+		                		startmedia(); 	
+		                	}
+		                });
+		            }
+		        } catch (Exception e) {e.printStackTrace();}
+	
+	}
+	public void startmedia( )
+	{
+		TextView track = (TextView)findViewById(R.id.textView1);
+		TextView artistname = (TextView)findViewById(R.id.textView2);
+		
+		track.setText(title[currentTrack]);
+		artistname.setText(artist[currentTrack]);
+		
+		int start = (int) ((int)(percent * duration[currentTrack]));
+		
+		String k =  String.valueOf(currentTrack);
+        Log.e("curren3",k);
+		String s =  String.valueOf(start);
+        Log.e("start",s);
+	    s =  String.valueOf(duration[currentTrack]);
+	    Log.e("duration",s);
+	        
+		int diff = ((int)duration[currentTrack]) - start;
+		  
+		s =  String.valueOf(diff);
+        Log.e("diff",s);
+	   
+		if(diff  > 60000)
+		{Log.e("in","if");    
+		    mediaPlayer.seekTo(start);
+	        mediaPlayer.start(); 
+		    Handler handler1 = new Handler();
+	        handler1.postDelayed(stopPlayerTask1,60000 );
+		 }
+		 else{
+		    Log.e("in","else");
+		    mediaPlayer.seekTo(start);
+		    mediaPlayer.start();
+		    mediaPlayer.setOnCompletionListener(new OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                	nextSong();
+                
+            }});			 
+		  }//else		 		 
+	}//startmedia()
+	
+	Runnable stopPlayerTask1 = new Runnable()
+    {
+        @Override
+        public void run() {	
+        	nextSong();
+     }};
+
+	public void nextSong() {
+		mediaPlayer.reset();
+		if(counter < 1){
+    	    counter++;   
+    	    //Log.e("MediaService Example", "Service Started media.. ");
+            currentTrack = (currentTrack + 1) % title.length; 
+            try {
+            if (audioId[currentTrack] > 0) {
+                Uri contentUri = ContentUris.withAppendedId(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, Long.valueOf(audioId[currentTrack]));
+                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                mediaPlayer.setDataSource(Player.this, contentUri);
+                mediaPlayer.prepareAsync();
+                mediaPlayer.setOnPreparedListener(new OnPreparedListener() {
+                	@Override
+                	public void onPrepared(MediaPlayer mediaPlayer)
+                	{ startmedia(); 	}
+                 });
+             }} catch (Exception e) {e.printStackTrace();}       
+    	 }	
+	}  
+}
