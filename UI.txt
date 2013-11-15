@@ -1,6 +1,6 @@
-Here is the link to the layouts and the drawable folder.
+Here is the link to the layouts and the drawable folder.  https://www.dropbox.com/sh/w5tazhhq3dgg9t0/5B8bKNY1qC
 
-Don't forget to add:
+Don't forget to add: 
 
 android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
 
