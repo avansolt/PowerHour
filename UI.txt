@@ -1,0 +1,7 @@
+Here is the link to the layouts and the drawable folder.
+
+Don't forget to add:
+
+android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+
+inside the <activity> tags.
