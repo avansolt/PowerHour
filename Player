@@ -14,7 +14,7 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 @SuppressLint("CutPasteId")
@@ -24,7 +24,7 @@ public class Player extends Activity {
 	String [] title;
     String [] artist;
     long[] duration;
-    int counter;
+    int counter, currentposition;
     double percent;
     
     private int currentTrack = 0; 
@@ -33,9 +33,10 @@ public class Player extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 	    super.onCreate(savedInstanceState);
-		setContentView(R.layout.songs);
+		setContentView(R.layout.start_screen);
 		
-		Button pause = (Button) findViewById(R.id.button3);
+		ImageButton pause = (ImageButton) findViewById(R.id.imageButton1);
+		ImageButton quit = (ImageButton) findViewById(R.id.imageButton2);
 		
 		//Get the bundle
 	    Bundle bundle = getIntent().getExtras();
@@ -77,9 +78,30 @@ public class Player extends Activity {
          pause.setOnClickListener(new View.OnClickListener() {
       	      @Override
       	      public void onClick(View v) {
-                        mediaPlayer.pause();	  
+      	    	ImageButton pause = (ImageButton) v;
+                if (pause.getTag().equals("pause")) {
+                   mediaPlayer.prepareAsync();
+                   mediaPlayer.seekTo(currentposition);
+                   pausedSong();
+                    pause.setTag("");
+                } else {
+                	 pause.setTag("pause");
+                	 currentposition= mediaPlayer.getCurrentPosition();
+                	 mediaPlayer.pause();
+                	 
+                    
+                }
           }}); 
          }
+        
+          quit.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				finish();
+				
+			}
+		});
         
         String s =  String.valueOf(seekto);
         Log.e("seekBar",s);
@@ -113,11 +135,11 @@ public class Player extends Activity {
 	}
 	public void startmedia( )
 	{
-		TextView track = (TextView)findViewById(R.id.textView1);
-		TextView artistname = (TextView)findViewById(R.id.textView2);
+		/*TextView track = (TextView)findViewById(R.id.textView2);
+		TextView artistname = (TextView)findViewById(R.id.textView1);
 		
 		track.setText(title[currentTrack]);
-		artistname.setText(artist[currentTrack]);
+		artistname.setText(artist[currentTrack]);*/
 		
 		int start = (int) ((int)(percent * duration[currentTrack]));
 		
@@ -159,6 +181,33 @@ public class Player extends Activity {
         public void run() {	
         	nextSong();
      }};
+     
+     private void pausedSong()
+     {
+    	 mediaPlayer.reset();
+    	 try {
+	            if (audioId[currentTrack] > 0) {
+	                Uri contentUri = ContentUris.withAppendedId(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, Long.valueOf(audioId[currentTrack]));
+	                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+	                mediaPlayer.setDataSource(this, contentUri);
+	                mediaPlayer.prepareAsync();
+	                mediaPlayer.setOnPreparedListener(new OnPreparedListener() {
+	                	@Override
+	                	public void onPrepared(MediaPlayer m) {
+	                		mediaPlayer.seekTo(currentposition);
+	                		mediaPlayer.start();
+	                		mediaPlayer.setOnCompletionListener(new OnCompletionListener() {
+	                            @Override
+	                            public void onCompletion(MediaPlayer mp) {
+	                            	nextSong();
+	                            
+	                        }});			 
+	                	}
+	                });
+	            }
+	        } catch (Exception e) {e.printStackTrace();}
+    	 
+     }
 
 	public void nextSong() {
 		mediaPlayer.reset();
